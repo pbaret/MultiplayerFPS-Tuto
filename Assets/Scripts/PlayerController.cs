@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 
+[RequireComponent(typeof(ConfigurableJoint))]
 [RequireComponent(typeof(PlayerMotor))]
 public class PlayerController : MonoBehaviour
 {
@@ -7,12 +8,24 @@ public class PlayerController : MonoBehaviour
     private float speed = 5f;
     [SerializeField]
     private float lookSensitivity = 3f;
+    [SerializeField]
+    private float thrusterForce = 1000f;
+
+    [Header("Spring Settings")]
+    [SerializeField]
+    private float jointSpring = 20f;
+    [SerializeField]
+    private float jointMaxForce = 40f;
 
     private PlayerMotor motor;
+    private ConfigurableJoint joint;
 
     private void Start()
     {
         motor = GetComponent<PlayerMotor>();
+        joint = GetComponent<ConfigurableJoint>();
+
+        SetJointSettings(jointSpring);
     }
 
     private void Update()
@@ -41,9 +54,28 @@ public class PlayerController : MonoBehaviour
         // Calculate camera Rotation as a 3D vector (aiming)
         float _xRot = Input.GetAxisRaw("Mouse Y");
 
-        Vector3 _cameraRotation = new Vector3(_xRot, 0f, 0f) * lookSensitivity;
+        float _cameraRotationX = _xRot * lookSensitivity;
 
         // Apply Camera rotation
-        motor.RotateCamera(_cameraRotation);
+        motor.RotateCamera(_cameraRotationX);
+
+        Vector3 _thrusterForce = Vector3.zero;
+        // Apply Thruster force
+        if (Input.GetButton("Jump"))
+        {
+            _thrusterForce = Vector3.up * thrusterForce;
+            SetJointSettings(0f);
+        }
+        else
+        {
+            SetJointSettings(jointSpring);
+        }
+
+        motor.ApplyThruster(_thrusterForce);
+    }
+
+    private void SetJointSettings(float _jointSpring)
+    {
+        joint.yDrive = new JointDrive { positionSpring = _jointSpring, maximumForce = jointMaxForce };
     }
 }
